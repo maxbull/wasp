@@ -13,10 +13,30 @@ type ScPostedRequest struct {
 	delay    int64
 }
 
+func (o *ScPostedRequest) Exists(keyId int32) bool {
+	return o.GetTypeId(keyId) >= 0
+}
+
 func (o *ScPostedRequest) GetObjectId(keyId int32, typeId int32) int32 {
-	return o.GetMapObjectId(keyId, typeId, map[int32]MapObjDesc{
-		KeyParams: {OBJTYPE_MAP, func() WaspObject { return &ScPostParams{} }},
+	return GetMapObjectId(o, keyId, typeId, MapFactories{
+		KeyParams: func() WaspObject { return &ScPostParams{} },
 	})
+}
+
+func (o *ScPostedRequest) GetTypeId(keyId int32) int32 {
+	switch keyId {
+	case KeyCode:
+		return OBJTYPE_INT
+	case KeyContract:
+		return OBJTYPE_BYTES
+	case KeyDelay:
+		return OBJTYPE_INT
+	case KeyFunction:
+		return OBJTYPE_STRING
+	case KeyParams:
+		return OBJTYPE_MAP
+	}
+	return -1
 }
 
 func (o *ScPostedRequest) Send() {
@@ -69,7 +89,7 @@ func (o *ScPostedRequest) SetString(keyId int32, value string) {
 	case KeyFunction:
 		code, ok := o.vm.funcToCode[value]
 		if !ok {
-			o.error("SetString: invalid function: %s", value)
+			o.Error("SetString: invalid function: %s", value)
 			return
 		}
 		o.code = int64(code)
@@ -85,11 +105,18 @@ type ScPostedRequests struct {
 }
 
 func (a *ScPostedRequests) GetObjectId(keyId int32, typeId int32) int32 {
-	return a.GetArrayObjectId(keyId, typeId, func() WaspObject {
+	return GetArrayObjectId(a, keyId, typeId, func() WaspObject {
 		postedRequest := &ScPostedRequest{}
 		postedRequest.name = "postedRequest"
 		return postedRequest
 	})
+}
+
+func (a *ScPostedRequests) GetTypeId(keyId int32) int32 {
+	if a.Exists(keyId) {
+		return OBJTYPE_MAP
+	}
+	return -1
 }
 
 func (a *ScPostedRequests) Send() {
@@ -121,13 +148,21 @@ func (o *ScPostParams) InitVM(vm *wasmProcessor, keyId int32) {
 	o.Params = kv.NewMap()
 }
 
+func (o *ScPostParams) Exists(keyId int32) bool {
+	key := o.vm.GetKey(keyId)
+	exists, _ := o.Params.Has(key)
+	return exists
+}
+
 func (o *ScPostParams) GetBytes(keyId int32) []byte {
-	value, _ := o.Params.Get(o.vm.GetKey(keyId))
+	key := o.vm.GetKey(keyId)
+	value, _ := o.Params.Get(key)
 	return value
 }
 
 func (o *ScPostParams) GetInt(keyId int32) int64 {
-	value, ok, _ := o.Params.Codec().GetInt64(o.vm.GetKey(keyId))
+	key := o.vm.GetKey(keyId)
+	value, ok, _ := o.Params.Codec().GetInt64(key)
 	if ok {
 		return value
 	}
@@ -139,15 +174,22 @@ func (o *ScPostParams) GetObjectId(keyId int32, typeId int32) int32 {
 }
 
 func (o *ScPostParams) GetString(keyId int32) string {
-	value, ok, _ := o.Params.Codec().GetString(o.vm.GetKey(keyId))
+	key := o.vm.GetKey(keyId)
+	value, ok, _ := o.Params.Codec().GetString(key)
 	if ok {
 		return value
 	}
 	return o.MapObject.GetString(keyId)
 }
 
+//TODO keep track of field types
+func (o *ScPostParams) GetTypeId(keyId int32) int32 {
+	return o.MapObject.GetTypeId(keyId)
+}
+
 func (o *ScPostParams) SetBytes(keyId int32, value []byte) {
-	o.Params.Set(o.vm.GetKey(keyId), value)
+	key := o.vm.GetKey(keyId)
+	o.Params.Set(key, value)
 }
 
 func (o *ScPostParams) SetInt(keyId int32, value int64) {
@@ -155,10 +197,12 @@ func (o *ScPostParams) SetInt(keyId int32, value int64) {
 	case KeyLength:
 		o.Params = kv.NewMap()
 	default:
-		o.Params.Codec().SetInt64(o.vm.GetKey(keyId), value)
+		key := o.vm.GetKey(keyId)
+		o.Params.Codec().SetInt64(key, value)
 	}
 }
 
 func (o *ScPostParams) SetString(keyId int32, value string) {
-	o.Params.Codec().SetString(o.vm.GetKey(keyId), value)
+	key := o.vm.GetKey(keyId)
+	o.Params.Codec().SetString(key, value)
 }

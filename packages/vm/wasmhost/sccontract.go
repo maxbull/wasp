@@ -38,3 +38,21 @@ func (o *ScContract) GetString(keyId int32) string {
 	}
 	return o.MapObject.GetString(keyId)
 }
+
+func (o *ScContract) GetTypeId(keyId int32) int32 {
+	switch keyId {
+	case KeyAddress:
+		return OBJTYPE_BYTES
+	case KeyColor:
+		return OBJTYPE_BYTES
+	case KeyDescription:
+		return OBJTYPE_STRING
+	case KeyId:
+		return OBJTYPE_STRING
+	case KeyName:
+		return OBJTYPE_STRING
+	case KeyOwner:
+		return OBJTYPE_BYTES
+	}
+	return -1
+}

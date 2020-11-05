@@ -1,0 +1,56 @@
+{
+  "types": {},
+  "setups": {
+    "default": {
+      "contract": {
+        "name": "increment",
+        "description": "Test basic functionality",
+        "id": "incrementId",
+        "address": "@scAddress",
+        "color": "#scColor",
+        "owner": "@scOwner"
+      },
+      "account": {
+        "colors": ["#iota"],
+        "balance": {"#iota": 100}
+      },
+      "request": {
+        "timestamp": 20201027172138,
+        "id": "$txHash",
+        "hash": "#txHash",
+        "address": "@sender"
+      }
+    }
+  },
+  "tests": [
+    {
+      "name": "nothing",
+      "setup": "default",
+      "request": {
+        "function": "nothing"
+      },
+      "expect": {
+        "state": {
+        },
+        "logs": {},
+        "postedRequests": [],
+        "transfers": []
+      }
+    },
+    {
+      "name": "increment",
+      "setup": "default",
+      "request": {
+        "function": "increment"
+      },
+      "expect": {
+        "state": {
+          "counter": 1
+        },
+        "logs": {},
+        "postedRequests": [],
+        "transfers": []
+      }
+    }
+  ]
+}
